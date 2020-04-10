@@ -1,10 +1,11 @@
-.globl _start
 .extern LD_STACK_PTR
 .extern LD_TTBR0_BASE
 .extern LD_TTBR1_BASE
+.extern exception_vector_table
 
-.section ".text.boot"
+.section ".text.start"
 
+.globl _start
 _start:
 // preserve current address
     adr     x20, .
@@ -136,18 +137,22 @@ _start:
     ldr     x0, =MAIR_EL1_VALUE
     msr     mair_el1, x0
 
-    dsb    ish                      // make changes visible
+    dsb     ish                      // make changes visible
     isb
-    mrs    x0, sctlr_el1
-    orr    x0, x0, #0x01            //  The M (MMU Enable) bit
-    msr    sctlr_el1, x0
+    mrs     x0, sctlr_el1
+    orr     x0, x0, #0x01            //  The M (MMU Enable) bit
+    msr     sctlr_el1, x0
+
+// Initialize exceptions
+    adr     x0, exception_vector_table
+    msr     vbar_el1, x0
     isb
 
 // Start Kernel
     ldr     x0, =LD_STACK_PTR
     mov     sp, x0
-    ldr     x0, =kernel_main
-    blr     x0
+    ldr     x11, =kernel_main
+    blr     x11
 
 .globl system_off
 system_off:
@@ -206,13 +211,13 @@ memzero:
 // INDX  | b000    << 2  | Attribute index in MAIR_ELn
 // ENTRY | b11     << 0  | Table descriptor entry
 
-.equ KERNEL_DATA_ATTR, 0x40000000000703 // -------------------------------------
+.equ KERNEL_DATA_ATTR, 0x60000000000703 // -------------------------------------
 
 // UXN   | b1      << 54 | Unprivileged eXecute Never
 // PXN   | b1      << 53 | Privileged eXecute Never
 // AF    | b1      << 10 | Access Flag
 // SH    | b11     << 8  | Inner shareable
-// AP    | b10     << 6  | R/W, EL1 access
+// AP    | b00     << 6  | R/W, EL1 access
 // NS    | b0      << 5  | Security bit (EL3 and Secure EL1 only)
 // INDX  | b000    << 2  | Attribute index in MAIR_ELn
 // ENTRY | b11     << 0  | Table descriptor entry
