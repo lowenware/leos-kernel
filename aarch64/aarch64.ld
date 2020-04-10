@@ -2,7 +2,9 @@ ENTRY(_start)
 SECTIONS
 {
     . = 0xfffffff000000000;
-    .text.boot : { *(.text.boot) }
+    .text.start : { *(.text.start) }
+    . = ALIGN(0x800);
+    .text.exceptions : { *(.text.exceptions) }
     .text : { *(.text) }
     . = ALIGN(0x1000);
 
