@@ -144,9 +144,15 @@ _start:
     msr     sctlr_el1, x0
 
 // Initialize exceptions
-    adr     x0, exception_vector_table
+    ldr     x0, =exception_vector_table
     msr     vbar_el1, x0
     isb
+
+// enable floating point instructions
+    mrs    x1, cpacr_el1
+    mov    x0, #(3 << 20)
+    orr    x0, x1, x0
+    msr    cpacr_el1, x0
 
 // Start Kernel
     ldr     x0, =LD_STACK_PTR
