@@ -21,7 +21,6 @@
 
 .macro EXCEPTION_VECTOR handler
 
-    mrs x1, esr_el1
     sub sp, sp, #CONTEXT_SIZE
 
 // store general purpose registers
