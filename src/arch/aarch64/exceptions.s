@@ -47,6 +47,7 @@
 
 // store link register which is x30
     str x30, [sp, #16 * 16]
+    mov x0, sp
 
 // call exception handler
     bl \handler
