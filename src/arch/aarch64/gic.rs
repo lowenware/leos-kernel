@@ -80,6 +80,14 @@ pub fn clear(interrupt: u32) {
     }
 }
 
+pub fn is_pending(interrupt: u32) -> bool {
+    unsafe {
+        return ptr::read_volatile(
+            GICD_ICPENDR.add((interrupt / GICD_ICPENDR_SIZE) as usize)
+        ) & (1 << (interrupt % GICD_ICPENDR_SIZE)) != 0
+    }
+}
+
 pub fn set_core(interrupt: u32, core: u32) {
     let shift: u32 = (interrupt % GICD_ITARGETSR_SIZE) * GICD_ITARGETSR_BITS;
     unsafe {

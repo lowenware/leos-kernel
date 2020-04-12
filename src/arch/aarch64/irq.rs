@@ -5,11 +5,13 @@
 //
 
 use super::exceptions::ExceptionCtx;
-use super::timer;
+use super::{gic, timer};
 
 #[no_mangle]
 pub fn handler(ctx: &mut ExceptionCtx) {
-    timer::on_interrupt(ctx);
+    if gic::is_pending(timer::TIMER_IRQ) {
+        timer::on_interrupt(ctx);
+    }
 }
 
 pub fn enable() {
