@@ -4,9 +4,6 @@ Kernel project for operating system for ARM 64bit (AArch64) written in Rust.
 
 ## Developer's notes
 
-> Current timer implementation is rough. In future access to registers must be done using safe
-> code wrappers. Most likely it will be updated as a part of multitasking implementation.
-
 > Logging is done using uart0, but future implementation will be different. Boot log will be done
 > using memory buffer with futher output to file. Boot log will be shown only in case of panic.
 

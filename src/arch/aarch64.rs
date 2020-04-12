@@ -6,7 +6,7 @@
 
 mod exceptions;
 mod gic;
+mod registers;
 
 pub mod irq;
 pub mod timer;
-
