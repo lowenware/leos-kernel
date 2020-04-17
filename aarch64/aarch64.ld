@@ -2,6 +2,7 @@ ENTRY(_start)
 SECTIONS
 {
     . = 0xfffffff000000000;
+    LD_KERNEL_BEGIN = .;
     .text.start : { *(.text.start) }
     . = ALIGN(0x800);
     .text.exceptions : { *(.text.exceptions) }
@@ -37,3 +38,4 @@ SECTIONS
     . = . + 0x1000;
     LD_KERNEL_END = .;
 }
+

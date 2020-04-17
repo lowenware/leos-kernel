@@ -4,15 +4,13 @@
 // Distributed under terms of the MIT license.
 //
 
-use crate::{scheduler, log_write};
-use super::exceptions::ExceptionCtx;
+use crate::{scheduler};
+use super::exceptions::ExceptionContext;
 use super::gic;
 use super::registers::{CNTPCT_EL0, CNTP_CTL_EL0, CNTFRQ_EL0, CNTP_TVAL_EL0};
 
 pub const TIMER_IRQ: u32 = 30; // TODO: board-dependent value
 
-// TODO: make safe timer initialization and remove inline attribute
-#[inline(never)]
 pub fn init() {
     gic::init();
     gic::set_config(TIMER_IRQ, gic::ICFGR_EDGE);
@@ -25,12 +23,9 @@ pub fn init() {
     CNTP_CTL_EL0.write(CNTP_CTL_EL0::ENABLE);
 }
 
-// TODO: make safe timer interrupt handling and remove inline attribute
 #[no_mangle]
-#[inline(never)]
-pub fn on_interrupt(_ctx: &mut ExceptionCtx) {
-    let counter = CNTPCT_EL0.read();
-    log_write!("{}.", counter);
+pub fn on_interrupt(_ctx: &mut ExceptionContext) {
+    log_debug!("{}", "TICK");
 
     CNTP_TVAL_EL0.write(CNTFRQ_EL0.read());
 
@@ -38,8 +33,12 @@ pub fn on_interrupt(_ctx: &mut ExceptionCtx) {
     scheduler::run();
 }
 
-/*
+
 pub fn get() -> u64 {
-    return 0;
+    return CNTPCT_EL0.read();
 }
-*/
+
+pub fn get_frequency() -> u64 {
+    return CNTFRQ_EL0.read();
+}
+

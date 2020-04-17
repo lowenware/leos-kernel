@@ -6,8 +6,11 @@
 
 use core::ptr;
 
+
+use crate::board::{GIC_BASE};
+
 // Distributor
-const GICD_BASE: u64 = 0xffffffe0_08000000; // TODO: board-dependent value
+const GICD_BASE: u64 = GIC_BASE; // TODO: board-dependent value
 const GICD_CTLR: *mut u32 = GICD_BASE as *mut u32;
 const GICD_ISENABLER: *mut u32 = (GICD_BASE + 0x0100) as *mut u32;
 // const GICD_ICENABLER: *mut u32 = (GICD_BASE + 0x0180) as *mut u32;
