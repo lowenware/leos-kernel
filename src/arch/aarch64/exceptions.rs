@@ -2,22 +2,22 @@ global_asm!(include_str!("exceptions.s"));
 
 use super::irq;
 
-const EL1_SP0_SYNC : &'static str = "EL1_SP0_SYNC";
-const EL1_SP0_IRQ : &'static str = "EL1_SP0_IRQ";
-const EL1_SP0_FIQ : &'static str = "EL1_SP0_FIQ";
-const EL1_SP0_ERROR : &'static str = "EL1_SP0_ERROR";
-const EL1_SYNC : &'static str = "EL1_SYNC";
-// const EL1_IRQ : &'static str = "EL1_IRQ";
-const EL1_FIQ : &'static str = "EL1_FIQ";
-const EL1_ERROR : &'static str = "EL1_ERROR";
-const EL0_SYNC : &'static str = "EL0_SYNC";
-const EL0_IRQ : &'static str = "EL0_IRQ";
-const EL0_FIQ : &'static str = "EL0_FIQ";
-const EL0_ERROR : &'static str = "EL0_ERROR";
-const EL0_32_SYNC : &'static str = "EL1_32_SYNC";
-const EL0_32_IRQ : &'static str = "EL1_32_IRQ";
-const EL0_32_FIQ : &'static str = "EL1_32_FIQ";
-const EL0_32_ERROR : &'static str = "EL1_32_ERROR";
+const EL1_SP0_SYNC : &str = "EL1_SP0_SYNC";
+const EL1_SP0_IRQ : &str = "EL1_SP0_IRQ";
+const EL1_SP0_FIQ : &str = "EL1_SP0_FIQ";
+const EL1_SP0_ERROR : &str = "EL1_SP0_ERROR";
+const EL1_SYNC : &str = "EL1_SYNC";
+// const EL1_IRQ : &str = "EL1_IRQ";
+const EL1_FIQ : &str = "EL1_FIQ";
+const EL1_ERROR : &str = "EL1_ERROR";
+const EL0_SYNC : &str = "EL0_SYNC";
+const EL0_IRQ : &str = "EL0_IRQ";
+const EL0_FIQ : &str = "EL0_FIQ";
+const EL0_ERROR : &str = "EL0_ERROR";
+const EL0_32_SYNC : &str = "EL1_32_SYNC";
+const EL0_32_IRQ : &str = "EL1_32_IRQ";
+const EL0_32_FIQ : &str = "EL1_32_FIQ";
+const EL0_32_ERROR : &str = "EL1_32_ERROR";
 
 #[repr(C)]
 pub struct ExceptionContext {

@@ -6,90 +6,87 @@
 
 mod heap;
 mod map;
+pub mod lock;
 
-use crate::{arch, board};
-use crate::arch::mmu;
+use crate::arch::memory;
+use crate::board;
+use heap::Heap;
+use lock::Locked;
 use map::Map;
-use heap::{Heap, Locked};
 
-// first megabyte for kernel
+pub const PERIPHERALS_BASE: usize = 0xffffffff_c0000000;
+
+pub const KERNEL_BASE: usize = 0xffffff80_00000000;
+const HEAP_SIZE: usize = 2 * 1024 * 1024;
+
+// ------------------------------------------------------------------------------------------------
+
 // second megabyte for heap
-const HEAP_BASE: u64 = 0xfffffff0_00100000;
-const HEAP_PAGES: usize = 256;
-// todo: combine using MMU constants
-const HEAP_FLAGS: u64 = 0x00600000_00000703;
-const HEAP_SIZE: usize = HEAP_PAGES * (arch::PAGE_SIZE as usize);
+// const HEAP_BASE: usize = 0xfffffff0_00100000;
+// const HEAP_PAGES: usize = 256;
+// TODO: combine using MMU constants
+// const HEAP_FLAGS: usize = 0x00600000_00000703;
 
-static mut MAP: Map = Map::empty();
+// ------------------------------------------------------------------------------------------------
 
+// Physical memory map
+static MAP: Locked<Map> = Locked::new(Map::new());
+
+// Kernel heap memory mapping
 #[global_allocator]
 static ALLOCATOR: Locked<Heap> = Locked::new(Heap::new());
 
+pub fn init(kernel_base: usize, kernel_size: usize) {
+    // unused memory REAL base
+    let heap_real = board::heap(kernel_base, kernel_size);
+    // initialize memory mapping
+    memory::init();
+    // map identity paging
+    memory::identity().identity(board::MEMORY_BASE, board::MEMORY_SIZE);
 
-fn address_to_map_index(address: u64) -> usize {
-    let mut result: usize;
-    if address >= board::MEMORY_BASE {
-        result = (address - board::MEMORY_BASE) as usize;
-        if result < board::MEMORY_SIZE {
-            result = result >> arch::PAGE_SHIFT;
-            return result;
-        }
-    }
-    panic!("Memory: address out of range -> 0x{:016x}", address);
-}
+    let mut kernel_space = memory::kernel();
+    // map peripherals memory
+    kernel_space.peripherals(board::PERIPHERALS_REAL, PERIPHERALS_BASE, board::PERIPHERALS_SIZE);
 
-pub fn init(kernel_base: u64, kernel_size: usize, ttbr1_base: u64) {
+    log_debug!("memory.heap.real = 0x{:016x}", heap_real);
+    // map area for heap
+    let heap_virt = kernel_space.map_L2(heap_real, memory::KERNEL_DATA) + KERNEL_BASE;
 
-    // lock kernel and heap pages in memory map
-    let mut addr = kernel_base;
-    let pages = (kernel_size >> arch::PAGE_SHIFT) + HEAP_PAGES;
-
-    for _i in 0..pages {
-        lock(addr);
-        addr += arch::PAGE_SIZE as u64;
-    }
-
-    mmu::init(kernel_base, ttbr1_base);
-    // TODO: full MMU implementation, just a workaround to map 1MB of heap for now
-    mmu::translate(kernel_base + kernel_size as u64, HEAP_BASE, HEAP_PAGES, HEAP_FLAGS);
-    log_state!("heap: {:#018x}: {}KB", HEAP_BASE, HEAP_SIZE >> 10);
-    unsafe {
-        ALLOCATOR.lock().init(HEAP_BASE as usize, HEAP_SIZE);
-    }
-}
-
-pub fn lock(address: u64) {
-    unsafe {
-        MAP.set(address_to_map_index(address));
-    }
-}
-
-pub fn get_page() -> u64 {
-    let mut index: usize = 0;
-    let res: bool;
+    log_debug!("memory.heap.virtual = 0x{:016x}", heap_virt);
+    log_debug!("memory.heap.size = 0x{:016x}", HEAP_SIZE);
 
     unsafe {
-        res = MAP.find(&mut index);
+        // initialize heap
+        ALLOCATOR.lock().init(heap_virt as usize, HEAP_SIZE);
     }
+    // initialize physical memory map
+    let mut memory_map = MAP.lock();
+    log_debug!("memory.map = 0x{:016x}, 0x{:016x}", board::MEMORY_BASE, board::MEMORY_SIZE);
+    memory_map.add(board::MEMORY_BASE, board::MEMORY_SIZE);
+    log_debug!("complete memory map");
+    memory_map.log();
 
-    if res {
-        return board::MEMORY_BASE + (index << arch::PAGE_SHIFT) as u64;
-    }
-    // returning 0 is safe here, because zero page should not be ever allocated by the map
-    return 0;
+    // delete from the map memory used by the kernel
+    log_debug!("cut kernel space: 0x{:016x}, 0x{:016x}", kernel_base, kernel_size);
+    memory_map.cut(kernel_base, kernel_size);
+    memory_map.log();
+    // delete from the map memory used by the heap
+    log_debug!("cut heap: 0x{:016x}, 0x{:016x}", heap_real, HEAP_SIZE);
+    memory_map.cut(heap_real, HEAP_SIZE);
+    memory_map.log();
+    // delete from the map memory used for peripherals (if in the middle of the region)
+    log_debug!("cut peripherals space");
+    memory_map.cut(board::PERIPHERALS_REAL, board::PERIPHERALS_SIZE);
+
+    memory_map.log();
 }
 
-pub fn free_page(address: u64) {
-    unsafe {
-        MAP.clear(address_to_map_index(address));
-    }
-}
-
-pub fn log_heap() {
-    ALLOCATOR.lock().describe();
+pub fn map(size: usize) -> Result<usize, ()> {
+    MAP.lock().get(size)
 }
 
 #[alloc_error_handler]
 fn on_alloc_error(layout: alloc::alloc::Layout) -> ! {
     panic!("memory allocation failed: {:?}", layout)
 }
+

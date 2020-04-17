@@ -2,11 +2,12 @@
 #![no_main]
 #![feature(alloc_layout_extra)]
 #![feature(alloc_error_handler)]
-#![feature(asm)]
+#![feature(llvm_asm)]
 #![feature(const_fn)]
 #![feature(format_args_nl)]
 #![feature(global_asm)]
 #![feature(panic_info_message)]
+#![feature(const_raw_ptr_to_usize_cast)]
 
 extern crate alloc;
 
@@ -22,53 +23,48 @@ mod scheduler;
 use arch::irq;
 use arch::timer;
 
-use alloc::{boxed::Box};
-
-global_asm!(include_str!("arch/aarch64/start.s"));
-
-// pub const KERNEL_BASE: u64 = 0xffff_fff0_0000_0000;
-//
-#[inline(never)]
-fn test_heap() {
-    memory::log_heap();
-    // test heap
-    let x = Box::new(41);
-    log_debug!("allocated from heap {:p}", x);
-    memory::log_heap();
-
-    let x = Box::new([1, 2, 3]);
-    log_debug!("allocated from heap {:p}", x);
-    memory::log_heap();
-}
-
-#[no_mangle]
-pub extern "C" fn kernel_main(kernel_base: u64, kernel_size: usize, stack_pointer: u64) {
-
-    log_state!("Starting LeOS kernel");
-    log_state!("kernel base: 0x{:08x}", kernel_base);
-    log_state!("kernel size: {:x}", kernel_size);
-    timer::init();
-    memory::init(kernel_base, kernel_size, stack_pointer);
-    board::init();
-    scheduler::init();
-    irq::enable();
-
-    test_heap();
-    memory::log_heap();
-
-    // test memory_map
-    let p = memory::get_page();
-    log_debug!("allocated 4k page: {:#018x}", p);
-    memory::free_page(p);
-    log_debug!("cleared page: {:#018x}", p);
-    let p = memory::get_page();
-    log_debug!("same 4k page must be allocated: {:#018x}", p);
-    memory::free_page(p);
-    log_debug!("cleared page: {:#018x}", p);
-
+extern "C" fn task(arg: usize) {
     loop {
+        log_state!("Task: {}", arg);
+
         unsafe {
-            asm!("wfi");
+            llvm_asm!("wfi");
         }
     }
 }
+
+#[no_mangle]
+pub extern "C" fn kernel_main(kernel_base: usize, kernel_size: usize) {
+
+    memory::init(kernel_base, kernel_size);
+    timer::init();
+    scheduler::init();
+
+    irq::enable();
+
+    log_state!("Starting LeOS kernel");
+    for i in 2..5 {
+        log_state!("Starting task {}", i);
+        // allocate real memory for the stack
+        if let Ok(mut stack) = memory::map(arch::memory::PAGE_SIZE) {
+            log_state!(" - real stack @ 0x{:016x}", stack);
+            // map stack memory page to a virtual memory
+            stack = arch::memory::kernel().map_L3(stack, arch::memory::KERNEL_DATA);
+            // get bottom of the stack
+            stack += arch::memory::PAGE_SIZE;
+            log_state!(" - virtual stack @ 0x{:016x}", stack);
+            // create a new task
+            scheduler::add(i, task, memory::KERNEL_BASE | stack, 0);
+            log_state!(" - scheduled");
+        }
+    }
+
+    loop {
+        log_state!("Task: 1");
+        unsafe {
+            llvm_asm!("wfi");
+        }
+    }
+}
+
+// ldp    x8, x9, [x0]

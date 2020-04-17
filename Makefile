@@ -34,3 +34,10 @@ debug:
 clean:
 	cargo clean
 
+.PHONY: lint
+lint:
+	cargo clippy
+
+.PHONY: dtc
+dtc:
+	dtc -I dtb -O dts qemu.dtb

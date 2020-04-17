@@ -1,14 +1,21 @@
-.extern LD_STACK_PTR
-.extern LD_TTBR0_BASE
-.extern LD_TTBR1_BASE
+.extern LD_RODATA_BASE
+.extern LD_DATA_BASE
+.extern LD_BSS_BASE
+.extern LD_STACK_TOP
+.extern LD_STACK_BOTTOM
 .extern exception_vector_table
 
 .section ".text.start"
+
+.equ PAGE_SIZE, 0x1000
+.equ PAGE_INDEX_MASK, 0x1FF        // 9 bits
+.equ TTBL_PAGES, 4               // 4 Pages
 
 .globl _start
 _start:
 // preserve current address
     adr     x20, .
+    adr     x0, LD_STACK_TOP
 // first 8 bits of mpidr indicate core id
     mrs     x1, MPIDR_EL1
     and     x1, x1, 0x0f
@@ -42,26 +49,17 @@ _start:
     msr     sctlr_el1, x0
 
 // Prepare values in registers
-    ldr     x19, =_start
-    sub     x19, x19, x20           // delta to calculate real address
-
-    ldr     x21, =LD_TTBR0_BASE
-    sub     x21, x21, x19           // LD_TTBR0_BASE real address
-
-    ldr     x22, =LD_TTBR1_BASE
-    sub     x22, x22, x19           // LD_TTBR1_BASE real address
-
-    ldr     x23, =LD_TTL2_BASE
-    sub     x23, x23, x19           // LD_TTL2_BASE real address
-
-    ldr     x24, =LD_TTL3_BASE
-    sub     x24, x24, x19           // LD_TTL3_BASE real address
+    adr     x21, LD_STACK_BOTTOM    // TTBR0_BASE real address
+    add     x22, x21, #PAGE_SIZE    // TTBR1_BASE real address
+    add     x23, x22, #PAGE_SIZE    // TTL2_BASE real address
+    add     x24, x23, #PAGE_SIZE    // TTL3_BASE real address
 
 // Erase BSS, stack and translation table memory
-    ldr     x0, =LD_BSS_BASE
-    ldr     x1, =LD_KERNEL_END
+    adr     x0, LD_BSS_BASE
+    adr     x1, LD_STACK_BOTTOM
+    mov     x25, (TTBL_PAGES * PAGE_SIZE)
+    add     x1, x1, x25
     sub     x1, x1, x0
-    sub     x0, x0, x19
     bl      memzero
 
 // Prepare initial 1GB identity mapping
@@ -78,15 +76,15 @@ _start:
 // Map peripherals memory to kernel space
 // TODO: move it later to SoC driver, peripherals should not be used until
 // SoC is determined and initiated, event UART output
-    ldr     x0, =PERIPHERALS_BASE
-    ldr     x1, =PERIPHERALS_ATTR
-    orr     x0, x0, x1
-    str     x0, [x22]
+//    ldr     x0, =PERIPHERALS_BASE
+//    ldr     x1, =PERIPHERALS_ATTR
+//    orr     x0, x0, x1
+//    str     x0, [x22]
 
 // Map kernel: L1
     ldr     x0, =_start
     lsr     x0, x0, #30
-    and     x0, x0, #0x7f
+    and     x0, x0, #PAGE_INDEX_MASK
     ldr     x10, =KERNEL_RODATA_ATTR
     orr     x1, x23, x10            // x23 = real LD_TTL2_BASE
     str     x1, [x22, x0, lsl #3]   // x22 = real LD_TTBR1_BASE
@@ -101,44 +99,49 @@ _start:
 
 // Map kernel: L3
     mov     x0, x20                 // real kernel start address
-    ldr     x1, =LD_RODATA_BASE
-    sub     x1, x1, x19             // mapping end address
+    adr     x1, LD_RODATA_BASE
     mov     x3, x24                 // x24 = real LD_TTL3_BASE
     ldr     x10, =KERNEL_CODE_ATTR  // descriptor attributes
-    ldr     x2, =6f                 // cycle exit point
-    sub     x2, x2, x19
+    adr     x2, 6f                  // cycle exit point
 4:  cmp     x0, x1                  // Section could be empty, so check first
     blt     5f
     br      x2
 5:  orr     x4, x0, x10
     str     x4, [x3], #8
-    add     x0, x0, #0x1000
+    add     x0, x0, #PAGE_SIZE
     b       4b
 
 // Continue with RODATA
 6:  ldr     x10, =KERNEL_RODATA_ATTR
-    ldr     x1, =LD_DATA_BASE
-    sub     x1, x1, x19
-    ldr     x2, =7f
-    sub     x2, x2, x19
+    adr     x1, LD_DATA_BASE
+    adr     x2, 7f
     b       4b
 
-// Continue with data, bss, stack, translation tables
+// Continue with data, bss, translation tables
 7:  ldr     x10, =KERNEL_DATA_ATTR
-    ldr     x1, =LD_KERNEL_END
-    sub     x1, x1, x19
-    ldr     x2, =8f
-    sub     x2, x2, x19
+    adr     x1, LD_STACK_TOP
+    adr     x2, 8f
+    b       4b
+
+// Map Kernel main task stack locker
+8:  ldr     x10, =KERNEL_LOCK_ATTR
+    orr     x4, x0, x10
+    str     x4, [x3], #8
+// Map Kernel main task stack
+    ldr     x10, =KERNEL_DATA_ATTR
+    adr     x1, LD_STACK_BOTTOM
+    adr     x2, 9f
     b       4b
 
 // Initialize MMU
-8:  ldr     x0, =TCR_EL1_VALUE
+9:  ldr     x0, =TCR_EL1_VALUE
     msr     tcr_el1, x0
     ldr     x0, =MAIR_EL1_VALUE
     msr     mair_el1, x0
 
     dsb     ish                      // make changes visible
     isb
+
     mrs     x0, sctlr_el1
     orr     x0, x0, #0x01            //  The M (MMU Enable) bit
     msr     sctlr_el1, x0
@@ -148,18 +151,21 @@ _start:
     msr     vbar_el1, x0
     isb
 
+// TODO: preserve context for FPU
 // enable floating point instructions
-    mrs    x1, cpacr_el1
-    mov    x0, #(3 << 20)
-    orr    x0, x1, x0
-    msr    cpacr_el1, x0
+//    mrs     x1, cpacr_el1
+//    mov     x0, #(3 << 20)
+//    orr     x0, x1, x0
+//    msr     cpacr_el1, x0
 
-// Start Kernel
-    ldr     x2, =LD_STACK_PTR
-    mov     sp, x2
+// set stack
+    ldr     x1, =LD_STACK_BOTTOM
+    add     sp, x1, #PAGE_SIZE
+// set kernel_main arguments
+    adr     x1, LD_STACK_BOTTOM
     mov     x0, x20
-    adr     x1, LD_KERNEL_END
     sub     x1, x1, x0
+    add     x1, x1, x25
 
     ldr     x11, =kernel_main
     blr     x11
@@ -231,12 +237,15 @@ memzero:
 // INDX  | b000    << 2  | Attribute index in MAIR_ELn
 // ENTRY | b11     << 0  | Table descriptor entry
 
+
+.equ KERNEL_LOCK_ATTR, 0x60000000000700 // -------------------------------------
+
 .equ MAIR_EL1_VALUE, 0x000004FF // ---------------------------------------------
 
 // IDX 0 | b11111111 << 0 | Normal memory
 // IDX 1 | b00000100 << 8 | Device-nGnRE memory (non-cacheble)
 
-.equ TCR_EL1_VALUE, 0x1B51B351B // ---------------------------------------------
+.equ TCR_EL1_VALUE, 0x1B5193519 // ---------------------------------------------
 
 // IPS   | b001    << 32 | 36bits address space - 64GB
 // TG1   | b10     << 30 | 4KB granule size for TTBR1_EL1
@@ -245,14 +254,15 @@ memzero:
 // IRGN1 | b01     << 24 | Normal, Inner Wr.Back Rd.alloc Wr.alloc Cacheble
 // EPD   | b0      << 23 | Perform translation table walk using TTBR1_EL1
 // A1    | b0      << 22 | TTBR1_EL1.ASID defined the ASID
-// T1SZ  | b011011 << 16 | Memory region 2^(64-28) -> 0xffffffexxxxxxxxx
+// T1SZ  | b011001 << 16 | Memory region 2^(64-25) -> 0xffffff80_00000000
 // TG0   | b00     << 14 | 4KB granule size
 // SH0   | b11     << 12 | Inner Sharebale
 // ORGN0 | b01     << 10 | Normal, Outer Wr.Back Rd.alloc Wr.alloc Cacheble
 // IRGN0 | b01     << 8  | Normal, Inner Wr.Back Rd.alloc Wr.alloc Cacheble
 // EPD0  | b0      << 7  | Perform translation table walk using TTBR0_EL1
 // 0     | b0      << 6  | Zero field (reserve)
-// T0SZ  | b011011 << 0  | Memory region 2^(64-28)
+// T0SZ  | b011001 << 0  | Memory region 2^(64-25) -> 0xffffff80_00000000
+
 
 // -----------------------------------------------------------------------------
 

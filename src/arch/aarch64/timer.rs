@@ -35,10 +35,10 @@ pub fn on_interrupt(_ctx: &mut ExceptionContext) {
 
 
 pub fn get() -> u64 {
-    return CNTPCT_EL0.read();
+    CNTPCT_EL0.read()
 }
 
 pub fn get_frequency() -> u64 {
-    return CNTFRQ_EL0.read();
+    CNTFRQ_EL0.read()
 }
 

@@ -1,8 +1,7 @@
 ENTRY(_start)
 SECTIONS
 {
-    . = 0xfffffff000000000;
-    LD_KERNEL_BEGIN = .;
+    . = 0xffffff8000000000;
     .text.start : { *(.text.start) }
     . = ALIGN(0x800);
     .text.exceptions : { *(.text.exceptions) }
@@ -15,27 +14,23 @@ SECTIONS
 
     LD_DATA_BASE = .;
     .data : { *(.data) }
-    . = ALIGN(8);
+
+    . = ALIGN(0x0008);
 
     LD_BSS_BASE = .;
     .bss : { *(.bss) }
+
     . = ALIGN(0x1000);
 
+    LD_STACK_TOP = .;
     . = . + 0x1000;
-    LD_STACK_PTR = .;
+    LD_STACK_BOTTOM = .;
 
-    LD_TTBR1_BASE = .;
-    . = . + 0x1000;
-
-    LD_TTL2_BASE = .;
-    . = . + 0x1000;
-
-    LD_TTL3_BASE = .;
-
-    . = . + 0x1000;
-    LD_TTBR0_BASE = .;
-
-    . = . + 0x1000;
-    LD_KERNEL_END = .;
+    /* start code allocates below
+     * - TTBR0_L1
+     * - TTBR1_L1,
+     * - TTBR1_L2,
+     * - TTBR1_L3,
+     */
 }
 
