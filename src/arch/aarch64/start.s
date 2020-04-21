@@ -155,8 +155,12 @@ _start:
     msr    cpacr_el1, x0
 
 // Start Kernel
-    ldr     x0, =LD_STACK_PTR
-    mov     sp, x0
+    ldr     x2, =LD_STACK_PTR
+    mov     sp, x2
+    mov     x0, x20
+    adr     x1, LD_KERNEL_END
+    sub     x1, x1, x0
+
     ldr     x11, =kernel_main
     blr     x11
 
@@ -171,7 +175,6 @@ memzero:
     subs x1, x1, 8
     b.gt memzero
     ret
-
 
 .equ PERIPHERALS_ATTR, 0x60000000000605 // -------------------------------------
 

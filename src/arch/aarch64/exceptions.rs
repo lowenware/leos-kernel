@@ -20,14 +20,14 @@ const EL0_32_FIQ : &'static str = "EL1_32_FIQ";
 const EL0_32_ERROR : &'static str = "EL1_32_ERROR";
 
 #[repr(C)]
-pub struct ExceptionCtx {
+pub struct ExceptionContext {
     regs: [u64; 30],
     elr_el1: u64,
     spsr_el1: u64,
     lr: u64,
 }
 
-fn catch(ctx: &mut ExceptionCtx, name: &str) {
+fn catch(ctx: &mut ExceptionContext, name: &str) {
     panic!(
         "\n  \
         {} @ 0x{:016x}\n\n  \
@@ -57,90 +57,90 @@ fn catch(ctx: &mut ExceptionCtx, name: &str) {
         ctx.regs[8], ctx.regs[18], ctx.regs[28],
         ctx.regs[9], ctx.regs[19], ctx.regs[29],
         ctx.lr,
-        ctx as *const ExceptionCtx as u64,
+        ctx as *const ExceptionContext as u64,
         ctx.spsr_el1,
     );
 }
 
 #[no_mangle]
-unsafe extern "C" fn el1_sp0_sync(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el1_sp0_sync(ctx: &mut ExceptionContext) {
     catch(ctx, EL1_SP0_SYNC);
 }
 
 #[no_mangle]
-unsafe extern "C" fn el1_sp0_irq(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el1_sp0_irq(ctx: &mut ExceptionContext) {
     catch(ctx, EL1_SP0_IRQ);
 }
 
 #[no_mangle]
-unsafe extern "C" fn el1_sp0_fiq(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el1_sp0_fiq(ctx: &mut ExceptionContext) {
     catch(ctx, EL1_SP0_FIQ);
 }
 
 #[no_mangle]
-unsafe extern "C" fn el1_sp0_error(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el1_sp0_error(ctx: &mut ExceptionContext) {
     catch(ctx, EL1_SP0_ERROR);
 }
 
 
 #[no_mangle]
-unsafe extern "C" fn el1_sync(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el1_sync(ctx: &mut ExceptionContext) {
     catch(ctx, EL1_SYNC);
 }
 
 #[no_mangle]
-unsafe extern "C" fn el1_irq(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el1_irq(ctx: &mut ExceptionContext) {
     irq::handler(ctx);
 }
 
 #[no_mangle]
-unsafe extern "C" fn el1_fiq(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el1_fiq(ctx: &mut ExceptionContext) {
     catch(ctx, EL1_FIQ);
 }
 
 #[no_mangle]
-unsafe extern "C" fn el1_error(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el1_error(ctx: &mut ExceptionContext) {
     catch(ctx, EL1_ERROR);
 }
 
 
 #[no_mangle]
-unsafe extern "C" fn el0_sync(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el0_sync(ctx: &mut ExceptionContext) {
     catch(ctx, EL0_SYNC);
 }
 
 #[no_mangle]
-unsafe extern "C" fn el0_irq(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el0_irq(ctx: &mut ExceptionContext) {
     catch(ctx, EL0_IRQ);
 }
 
 #[no_mangle]
-unsafe extern "C" fn el0_fiq(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el0_fiq(ctx: &mut ExceptionContext) {
     catch(ctx, EL0_FIQ);
 }
 
 #[no_mangle]
-unsafe extern "C" fn el0_error(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el0_error(ctx: &mut ExceptionContext) {
     catch(ctx, EL0_ERROR);
 }
 
 
 #[no_mangle]
-unsafe extern "C" fn el0_32_sync(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el0_32_sync(ctx: &mut ExceptionContext) {
     catch(ctx, EL0_32_SYNC);
 }
 
 #[no_mangle]
-unsafe extern "C" fn el0_32_irq(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el0_32_irq(ctx: &mut ExceptionContext) {
     catch(ctx, EL0_32_IRQ);
 }
 
 #[no_mangle]
-unsafe extern "C" fn el0_32_fiq(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el0_32_fiq(ctx: &mut ExceptionContext) {
     catch(ctx, EL0_32_FIQ);
 }
 
 #[no_mangle]
-unsafe extern "C" fn el0_32_error(ctx: &mut ExceptionCtx) {
+unsafe extern "C" fn el0_32_error(ctx: &mut ExceptionContext) {
     catch(ctx, EL0_32_ERROR);
 }
