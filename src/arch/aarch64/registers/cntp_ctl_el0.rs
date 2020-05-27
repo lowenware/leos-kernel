@@ -23,7 +23,7 @@ pub mod CNTP_CTL_EL0 {
     ///
     /// 0b0 - Timer is enabled
     /// 0b1 - Timer is disabled
-    pub const ENABLE: u64 = 1 << 0;
+    pub const ENABLE: u64 = 1;
 
     pub struct Register{}
 

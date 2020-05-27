@@ -10,7 +10,7 @@ use core::ptr;
 use crate::board::{GIC_BASE};
 
 // Distributor
-const GICD_BASE: u64 = GIC_BASE; // TODO: board-dependent value
+const GICD_BASE: usize = GIC_BASE;
 const GICD_CTLR: *mut u32 = GICD_BASE as *mut u32;
 const GICD_ISENABLER: *mut u32 = (GICD_BASE + 0x0100) as *mut u32;
 // const GICD_ICENABLER: *mut u32 = (GICD_BASE + 0x0180) as *mut u32;
@@ -33,7 +33,7 @@ const GICD_ICFGR_SIZE: u32 = 16;
 const GICD_ICFGR_BITS: u32 = 2;
 
 // CPU
-const GICC_BASE: u64 = 0xffffffe0_08010000; // TODO: board-dependent value
+const GICC_BASE: usize = GIC_BASE + 0x10000;
 const GICC_CTLR: *mut u32 = GICC_BASE as *mut u32;
 const GICC_PMR: *mut u32 = (GICC_BASE + 0x0004) as *mut u32;
 const GICC_BPR: *mut u32 = (GICC_BASE + 0x0008) as *mut u32;
@@ -85,7 +85,7 @@ pub fn clear(interrupt: u32) {
 
 pub fn is_pending(interrupt: u32) -> bool {
     unsafe {
-        return ptr::read_volatile(
+        ptr::read_volatile(
             GICD_ICPENDR.add((interrupt / GICD_ICPENDR_SIZE) as usize)
         ) & (1 << (interrupt % GICD_ICPENDR_SIZE)) != 0
     }

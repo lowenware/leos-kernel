@@ -6,8 +6,7 @@
 
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::{mem, ptr};
-use spin;
-
+use super::lock::Locked;
 
 struct HeapNode {
     next: Option<&'static mut HeapNode>,
@@ -24,7 +23,7 @@ impl HeapNode {
         unsafe {
             (*p_node).size = size;
             (*p_node).next = next;
-            return &mut *p_node
+            &mut *p_node
         }
     }
 
@@ -55,7 +54,7 @@ impl Heap {
 
     fn align_to(value: usize, align: usize) -> usize {
         let mask = align - 1;
-        return (value + mask) & !mask
+        (value + mask) & !mask
     }
 
     pub unsafe fn init(&mut self, heap_base: usize, heap_size: usize) {
@@ -65,9 +64,9 @@ impl Heap {
 
     fn adjust_size(size: usize) -> usize {
         if size < mem::size_of::<HeapNode>() {
-            return mem::size_of::<HeapNode>();
+            mem::size_of::<HeapNode>()
         } else {
-            return Heap::align_to(size, mem::align_of::<HeapNode>());
+            Heap::align_to(size, mem::align_of::<HeapNode>())
         }
     }
 
@@ -80,7 +79,7 @@ impl Heap {
 
         let size = Heap::adjust_size(layout.size());
 
-        return (size, align)
+        (size, align)
     }
 
     fn try_allocate(node: &mut HeapNode, size: usize, align: usize) ->
@@ -133,7 +132,7 @@ impl Heap {
             current = current.next.as_mut().unwrap();
         }
 
-        return Err(());
+        Err(())
     }
 
     unsafe fn put(&mut self, node_base: usize, size: usize) {
@@ -158,30 +157,16 @@ impl Heap {
         current.next = Some(HeapNode::new(node_base, size, current.next.take()));
     }
 
-    pub fn describe(&mut self) {
-        let mut current = &mut self.head;
-        while let Some(ref mut node) = current.next {
-            log_debug!("HeapNode {:#018x}:{}B", node.get_base(), node.size);
-            current = current.next.as_mut().unwrap();
-        }
-    }
+//    pub fn describe(&mut self) {
+//        let mut current = &mut self.head;
+//        while let Some(ref mut node) = current.next {
+//            log_debug!("HeapNode {:#018x}:{}B", node.get_base(), node.size);
+//            current = current.next.as_mut().unwrap();
+//        }
+//    }
 }
 
-pub struct Locked<A> {
-    inner: spin::Mutex<A>,
-}
-
-impl <A> Locked<A> {
-    pub const fn new(inner: A) -> Self {
-        Locked {
-            inner: spin::Mutex::new(inner),
-        }
-    }
-
-    pub fn lock(&self) -> spin::MutexGuard<A> {
-        self.inner.lock()
-    }
-}
+// ------------------------------------------------------------------------------------------------
 
 unsafe impl GlobalAlloc for Locked<Heap> {
 
@@ -203,3 +188,5 @@ unsafe impl GlobalAlloc for Locked<Heap> {
         self.lock().put(ptr as usize, size);
     }
 }
+
+

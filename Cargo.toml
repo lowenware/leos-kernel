@@ -8,3 +8,9 @@ edition = "2018"
 
 [dependencies]
 spin = "0.5.2"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

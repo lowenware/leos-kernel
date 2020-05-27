@@ -11,7 +11,7 @@ macro_rules! aarch64_sysreg_read {
         pub fn read(&self) -> $sysreg_size {
             let value;
             unsafe {
-                asm!(concat!("mrs $0, ", $sysreg_name) : "=r"(value) ::: "volatile");
+                llvm_asm!(concat!("mrs $0, ", $sysreg_name) : "=r"(value) ::: "volatile");
             }
             return value
         }
@@ -24,7 +24,7 @@ macro_rules! aarch64_sysreg_write {
         #[inline]
         pub fn write(&self, value: $sysreg_size) {
             unsafe {
-                asm!(concat!("msr ", $sysreg_name, ", $0") :: "r"(value) ::: "volatile");
+                llvm_asm!(concat!("msr ", $sysreg_name, ", $0") :: "r"(value) ::: "volatile");
             }
         }
     };

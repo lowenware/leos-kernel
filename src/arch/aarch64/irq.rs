@@ -16,15 +16,13 @@ pub fn handler(ctx: &mut ExceptionContext) {
 
 pub fn enable() {
     unsafe {
-        asm!("msr daifclr, #2");
+        llvm_asm!("msr daifclr, #2");
     }
 }
 
-/*
 pub fn disable() {
     unsafe {
-        asm!("msr daifset, #2");
+        llvm_asm!("msr daifset, #2");
     }
 }
-*/
 

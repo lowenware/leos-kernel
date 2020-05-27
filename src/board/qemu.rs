@@ -5,22 +5,16 @@
 //
 //
 
-use crate::memory;
-use crate::arch;
+use crate::memory::{PERIPHERALS_BASE};
 
-// pub const PERIPHERALS_REAL: u64 = 0x00000000;
-pub const PERIPHERALS_BASE: u64 = 0xffffffe0_00000000;
-pub const GIC_BASE: u64 = PERIPHERALS_BASE + 0x08000000;
-pub const UART_BASE: u64 = PERIPHERALS_BASE + 0x09000000;
+pub const PERIPHERALS_REAL: usize = 0x0000_0000;
+pub const PERIPHERALS_SIZE: usize = 0x4000_0000;
+pub const MEMORY_BASE: usize = 0x4000_0000;
+pub const MEMORY_SIZE: usize = 0x4000_0000;
 
-pub const MEMORY_BASE: u64 = 0x4000_0000;
-pub const MEMORY_SIZE: usize = 1024 * 1024 * 1024;
+pub const GIC_BASE: usize = PERIPHERALS_BASE + 0x0800_0000;
+pub const UART_BASE: usize = PERIPHERALS_BASE + 0x0900_0000;
 
-pub fn init() {
-    let mut addr = 0x40000000;
-    // lock 128 pages from 0x40000000..40080000
-    for _i in 0..128 {
-        memory::lock(addr);
-        addr += arch::PAGE_SIZE as u64;
-    }
+pub fn heap(kernel_base: usize, kernel_size: usize) -> usize {
+    kernel_base + kernel_size
 }
