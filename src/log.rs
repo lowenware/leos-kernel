@@ -4,18 +4,19 @@
 // Distributed under terms of the MIT license.
 //
 
-use core::ptr;
 use core::fmt;
+use crate::drivers::{SystemTimer};
 
-use crate::board::{UART_BASE};
+use crate::platform::{UART0, TIMER0};
 
 struct Log;
 
 impl Log {
     fn write_string(&mut self, msg: &str) {
+        use crate::drivers::SerialDevice;
         for chr in msg.chars() {
             unsafe {
-                ptr::write_volatile(UART_BASE as *mut u8, chr as u8);
+                UART0.write(chr);
             }
         }
     }
@@ -43,10 +44,12 @@ macro_rules! log_write {
 }
 
 pub fn mark(symbol: &str) {
-    use crate::arch::timer;
-    let value = timer::get();
-    let freq = timer::get_frequency();
-    log_write!("{:03}.{:05} {} ", value / freq, ((value % freq) * 10000) / freq, symbol);
+    // TODO: resolve drivers synchronization
+    unsafe {
+        let value = TIMER0.get_value();
+        let freq = TIMER0.get_frequency();
+        log_write!("{:03}.{:05} {} ", value / freq, ((value % freq) * 10000) / freq, symbol);
+    }
 }
 
 #[macro_export]

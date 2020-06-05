@@ -5,13 +5,13 @@
 //
 
 use core::fmt;
-use crate::arch::{TaskContext};
+use crate::arch::context;
 
 type PID = u32;
 
 #[repr(C)]
 pub struct Task {
-    ctx: TaskContext,
+    ctx: context::TaskContext,
     pid: PID,
     preempt: u32,
 }
@@ -20,7 +20,7 @@ impl Task {
 
     pub const fn new(pid: PID, entry: usize, arg: usize, stack: usize, ttbr0_base: usize) -> Self {
         Task {
-            ctx: TaskContext::new(entry, arg, stack, ttbr0_base),
+            ctx: context::TaskContext::new(entry, arg, stack, ttbr0_base),
             pid,
             preempt: 1,
         }
