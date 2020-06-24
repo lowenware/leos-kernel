@@ -7,6 +7,11 @@ Kernel project for operating system for ARM 64bit (AArch64) written in Rust.
 > Logging is done using uart0, but future implementation will be different. Boot log will be done
 > using memory buffer with futher output to file. Boot log will be shown only in case of panic.
 
+```
+
+rustup target add aarch64-unknown-none-softfloat
+```
+
 ## Compilation
 
 ```shell

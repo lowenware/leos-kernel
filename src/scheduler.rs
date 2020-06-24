@@ -7,7 +7,7 @@
 mod task;
 mod queue;
 
-use crate::arch;
+use crate::{arch, irq};
 use task::Task;
 use queue::Queue;
 use alloc::{vec::Vec};
@@ -75,7 +75,7 @@ fn switch_task(current: &mut Task) {
         if next.as_ptr() != current.as_ptr() {
             log_debug!("Switch context PID {} -> {}", current.pid(), next.pid());
             unsafe {
-                arch::switch_context(current.as_ptr() as usize, next.as_ptr() as usize);
+                arch::context::switch_context(current.as_ptr() as usize, next.as_ptr() as usize);
             }
         }
     }
@@ -86,11 +86,11 @@ pub fn run() {
         if current.preempt() == 0 {
             current.disable_preempt();
             // enable interrupts
-            arch::irq::enable();
+            irq::enable_all();
             // switch tasks
             switch_task(current);
             // disable interrupts
-            arch::irq::disable();
+            irq::disable_all();
             if let Some(next) = queue().head() {
                 next.enable_preempt();
             }

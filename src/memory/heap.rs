@@ -171,7 +171,7 @@ impl Heap {
 unsafe impl GlobalAlloc for Locked<Heap> {
 
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        log_debug!("heap: allocate {:?}", layout);
+        // log_debug!("heap: allocate {:?}", layout);
         let (size, align) = Heap::adjust_layout(layout);
         let mut heap = self.lock();
 
@@ -183,7 +183,7 @@ unsafe impl GlobalAlloc for Locked<Heap> {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        log_debug!("heap: deallocate {:?}", layout);
+        // log_debug!("heap: deallocate {:?}", layout);
         let size = Heap::adjust_size(layout.size());
         self.lock().put(ptr as usize, size);
     }

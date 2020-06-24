@@ -139,6 +139,7 @@ impl Map {
         }
     }
 
+    /*
     pub fn log(&mut self) {
         let mut current = &mut self.head;
 
@@ -147,5 +148,6 @@ impl Map {
             current = current.next.as_mut().unwrap();
         }
     }
+    */
 }
 
