@@ -1,26 +1,26 @@
-BOARD ?= qemu
+PLATFORM ?= qemu
 
 ARCH ?= aarch64-unknown-none-softfloat
 CPU ?= cortex-a57
 LINKER ?= src/aarch64/aarch64.ld
 
-ifeq ($(BOARD),qemu)
+ifeq ($(PLATFORM),qemu)
 	SOC = virt
-else ifeq ($(BOARD), pinebookpro)
+else ifeq ($(PLATFORM), pinebookpro)
 	SOC = rk3399
-else ifeq ($(BOARD), raspi3)
+else ifeq ($(PLATFORM), raspi3)
 	SOC = bcm2711
-else ifeq ($(BOARD), raspi4)
+else ifeq ($(PLATFORM), raspi4)
 	SOC = bcm2711
 	CPU = cortex-a72
 else
-    $(error unsupported board $(BOARD))
+    $(error unsupported board $(PLATFORM))
 endif
 
 RUSTFLAGS = \
   -C link-arg=-T$(LINKER) \
   -C target-cpu=$(CPU) \
-  --cfg board=\"$(BOARD)\" \
+  --cfg platform=\"$(PLATFORM)\" \
   --cfg soc=\"$(SOC)\" \
 
 OBJCOPY = aarch64-none-elf-objcopy

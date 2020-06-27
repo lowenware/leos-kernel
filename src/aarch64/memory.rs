@@ -7,7 +7,7 @@
 use super::drivers::mmu;
 use super::registers::{TTBR0_EL1, TTBR1_EL1};
 
-pub use mmu::{PAGE_SIZE, PERIPHERALS_FLAGS};
+pub use mmu::{BLOCK_L1_SIZE, BLOCK_L2_SIZE, PAGE_SIZE, PERIPHERALS_FLAGS};
 
 // TODO: verify flags
 pub const KERNEL_DATA: usize =

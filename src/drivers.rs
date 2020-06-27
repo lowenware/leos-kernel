@@ -6,6 +6,7 @@
 
 pub mod mmio;
 pub mod soc;
+pub mod timer;
 pub mod uart;
 
 pub trait Driver {
